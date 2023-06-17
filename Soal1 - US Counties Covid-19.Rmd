@@ -1,0 +1,29 @@
+```{r}
+socioHealth = read.csv("~/pramudya/matkul/data mining/LEC & LAB/LAB Project/socioHealth.csv")
+healthWeather = read.csv("~/pramudya/matkul/data mining/LEC & LAB/LAB Project/healthWeather.csv")
+geometry = read.csv("~/pramudya/matkul/data mining/LEC & LAB/LAB Project/geometry.csv")
+```
+
+```{r}
+View(socioHealth)
+```
+
+```{r}
+names(socioHealth)
+```
+
+```{r}
+View(healthWeather)
+```
+
+```{r}
+library(dplyr)
+```
+```{r}
+select(socioHealth, county, percent_female)
+```
+
+```{r}
+socioHealth$percent_fe
+```
+

@@ -1,0 +1,234 @@
+```{r}
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+```{r}
+healthWeather = read.csv("~/pramudya/matkul/data mining/archive/US_counties_COVID19_health_weather_data.csv")
+geometry = read.csv("~/pramudya/matkul/data mining/archive/us_county_geometry.csv")
+socioHealth = read.csv("~/pramudya/matkul/data mining/archive/us_county_sociohealth_data.csv")
+```
+
+```{r}
+head(geometry)
+```
+
+```{r}
+dim(geometry)
+```
+
+```{r}
+head(socioHealth)
+```
+```{r}
+dim(socioHealth)
+```
+
+```{r}
+head(healthWeather)
+```
+
+```{r}
+dim(healthWeather)
+```
+
+```{r}
+sameColumns <- intersect(names(geometry), names(healthWeather))
+
+if (length(sameColumns) > 0) {
+  cat("Same columns:", paste(sameColumns, collapse = ", "))
+} else {
+  cat("No same column between geometry and healthWeather data")
+}
+```
+
+```{r}
+sameColumns <- intersect(names(socioHealth), names(healthWeather))
+
+if (length(sameColumns) > 0) {
+  cat("Number of same columns:", length(sameColumns))
+} else {
+  cat("No same column between socioHealth and healthWeather data")
+}
+```
+
+```{r}
+print(paste("healthWeather:", any(is.na(healthWeather))))
+```
+
+```{r}
+colSums(is.na(healthWeather))
+```
+
+```{r}
+healthWeather <- na.omit(healthWeather)
+print(paste("healthWeather:", any(is.na(healthWeather))))
+```
+
+```{r}
+write.csv(healthWeather, "~/pramudya/matkul/data mining/LEC & LAB/LAB Project/healthWeather.csv", row.names = F)
+```
+
+```{r}
+print(length(unique(healthWeather$county)))
+```
+
+```{r}
+print(length(unique(healthWeather$state)))
+```
+
+```{r}
+unique(healthWeather$state)
+```
+
+```{r}
+format(sum(healthWeather$cases), big.mark = ",")
+```
+
+```{r}
+format(sum(healthWeather$deaths), big.mark = ",")
+```
+
+```{r}
+healthWeather$date <- as.Date(healthWeather$date)
+```
+
+```{r}
+casesOvertime <- aggregate(cases ~ date, data = healthWeather, sum)
+plot1 <- ggplot(casesOvertime, aes(y = cases, x = date)) + geom_line(color = "red", stat="identity") + labs(title = "Covid-19 Cases in US Overtime", x = "Date", y = "Cases") + theme_minimal()
+ggplotly(plot1)
+```
+
+```{r}
+deathsOvertime <- aggregate(deaths ~ date, data = healthWeather, sum)
+plot2 <- ggplot(deathsOvertime, aes(y = deaths, x = date)) + geom_line(color = "red", stat="identity") + labs(title = "Death by Covid-19 in US Overtime", x = "Date", y = "Deaths") + theme_minimal()
+ggplotly(plot2)
+```
+
+```{r}
+casesPerState <- aggregate(cases ~ state, data = healthWeather, sum)
+print(casesPerState)
+```
+
+```{r}
+casesPerState <- casesPerState[order(-casesPerState$cases), ]
+top5 <- head(casesPerState, 5)
+top5$state <- factor(top5$state, levels = top5$state[order(top5$cases)])
+
+ggplot(data = top5, aes(x = cases, y = state)) +
+  geom_bar(stat = "identity", fill = "red") +
+  labs(title = "Top 5 States by Covid-19 Cases", x = "Cases", y = "State") + theme_minimal()
+```
+
+```{r}
+belowPoverty <- aggregate(num_below_poverty ~ state, healthWeather, mean)
+belowPoverty <- belowPoverty[order(-belowPoverty$num_below_poverty), ]
+belowPoverty$num_below_poverty <- round(belowPoverty$num_below_poverty)
+belowPoverty <- belowPoverty[, c("state", "num_below_poverty")]
+belowPoverty$num_below_poverty <- as.integer(belowPoverty$num_below_poverty)
+
+print(belowPoverty)
+```
+
+```{r}
+uninsured <- aggregate(num_uninsured ~ state, healthWeather, mean)
+uninsured$num_uninsured <- round(uninsured$num_uninsured)
+uninsured <- uninsured[, c("state", "num_uninsured")]
+uninsured$num_uninsured <- as.integer(uninsured$num_uninsured)
+
+ggplot(data = uninsured, aes(x = state, y = num_uninsured)) +
+  geom_bar(stat = "identity", fill = "red") +
+  geom_text(aes(label = num_uninsured), vjust = -0.5, color = "black", size = 2) +
+  labs(title = "Average Number of Uninsured People by State", x = "State", y = "Average Num of Uninsured People") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+averages <- aggregate(cbind(num_uninsured, num_below_poverty) ~ state, data = healthWeather, mean)
+averages$num_uninsured <- round(averages$num_uninsured)
+averages$num_below_poverty <- round(averages$num_below_poverty)
+plot3 <- ggplot(data = averages, aes(x = num_below_poverty, y = num_uninsured)) +
+  geom_point(color="red") +
+  geom_smooth(method = "lm", se = FALSE, color = "grey") +
+  labs(title = "Relationship Between Poverty & Uninsured in US",
+       x = "Number Below Poverty (Average)",
+       y = "Number Uninsured (Average)") +
+  theme_minimal()
+ggplotly(plot3)
+```
+
+```{r}
+diabetes <- aggregate(percent_adults_with_diabetes ~ state, healthWeather, mean)
+diabetes$percent_adults_with_diabetes <- round(diabetes$percent_adults_with_diabetes, 1)
+diabetes <- diabetes[, c("state", "percent_adults_with_diabetes")]
+diabetes$state <- factor(diabetes$state, levels = diabetes$state[order(-diabetes$percent_adults_with_diabetes)])
+
+ggplot(data = diabetes, aes(x = state, y = percent_adults_with_diabetes)) +
+  geom_bar(stat = "identity", fill = "red") +
+  geom_text(aes(label = paste(sprintf("%.1f", percent_adults_with_diabetes), "%")), vjust = -0.5, color = "black", size = 2) +
+  labs(title = "Diabetes in US States", x = "State", y = "Average Percent Adults with Diabetes") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+obesity <- aggregate(percent_adults_with_obesity ~ state, healthWeather, mean)
+obesity$percent_adults_with_obesity <- round(obesity$percent_adults_with_obesity, 1)
+obesity <- obesity[, c("state", "percent_adults_with_obesity")]
+obesity$state <- factor(obesity$state, levels = obesity$state[order(-obesity$percent_adults_with_obesity)])
+
+ggplot(data = obesity, aes(x = state, y = percent_adults_with_obesity)) +
+  geom_bar(stat = "identity", fill = "red") +
+  geom_text(aes(label = paste(sprintf("%.1f", percent_adults_with_obesity), "%")), vjust = -0.5, color = "black", size = 2) +
+  labs(title = "Obesity in US States", x = "State", y = "Average Percent Adults with Obesity") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+HIV <- aggregate(num_hiv_cases ~ state, healthWeather, mean)
+HIV$num_hiv_cases <- round(HIV$num_hiv_cases)
+HIV <- HIV[, c("state", "num_hiv_cases")]
+HIV$num_hiv_cases <- as.integer(HIV$num_hiv_cases)
+HIV$state <- factor(HIV$state, levels = HIV$state[order(-HIV$num_hiv_cases)])
+
+ggplot(data = HIV, aes(x = state, y = num_hiv_cases)) +
+  geom_bar(stat = "identity", fill = "red") +
+  geom_text(aes(label = num_hiv_cases), vjust = -0.5, color = "black", size = 2) +
+  labs(title = "HIV in US States", x = "State", y = "Average Num of HIV Cases") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+meanTempPerState <- aggregate(mean_temp ~ state, data = healthWeather, function(x) round(mean(x), 1))
+print(meanTempPerState)
+```
+
+```{r}
+maxTempOvertime <- aggregate(max_temp ~ date, data = healthWeather, function(x) round(max(x), 1))
+meanTempOvertime <- aggregate(mean_temp ~ date, data = healthWeather, function(x) round(mean(x), 1))
+minTempOvertime <- aggregate(min_temp ~ date, data = healthWeather, function(x) round(min(x), 1))
+
+plot4 <- plot_ly(data = maxTempOvertime, x = ~date, y = ~max_temp, type = 'scatter', mode = 'lines', name = 'Max Temperature') %>%
+  layout(title = 'Temperature in US Overtime', xaxis = list(title = 'Date'), yaxis = list(title = 'Max Temperature °F'))
+
+plot5 <- plot_ly(data = meanTempOvertime, x = ~date, y = ~mean_temp, type = 'scatter', mode = 'lines', name = 'Mean Temperature') %>%
+  layout(title = 'Temperature in US Overtime', xaxis = list(title = 'Date'), yaxis = list(title = 'Mean Temperature °F'))
+
+plot6 <- plot_ly(data = minTempOvertime, x = ~date, y = ~min_temp, type = 'scatter', mode = 'lines', name = 'Min Temperature') %>%
+  layout(title = 'Temperature in US Overtime', xaxis = list(title = 'Date'), yaxis = list(title = 'Min Temperature °F'))
+
+subplot(plot4, plot5, plot6, nrows = 3)
+```
+
+```{r}
+print(paste(max(healthWeather$max_temp), "°F"))
+```
+
+```{r}
+print(paste(round(mean(healthWeather$mean_temp),1), "°F"))
+```
+
+```{r}
+print(paste(round(min(healthWeather$min_temp),1), "°F"))
+```

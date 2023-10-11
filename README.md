@@ -1,4 +1,4 @@
-# US Counties_R
+# Covid-19 in US: Weather & Socioeconomic Factors
 This repository contains the dataset and code for analyzing the impact of weather and socioeconomic factors on COVID-19 cases in the United States. Additionally, a comprehensive interactive dashboard has been created to visualize the findings.
 
 **Files**<br>
